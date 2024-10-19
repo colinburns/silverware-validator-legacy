@@ -22,6 +22,7 @@ use SilverStripe\Forms\FormField;
 use SilverStripe\Forms\Validator as BaseValidator;
 use SilverStripe\ORM\ArrayLib;
 use SilverStripe\View\Requirements;
+use SilverWare\Validator\Backend;
 use SilverWare\Validator\Rules\RequiredRule;
 
 /**
@@ -44,28 +45,36 @@ class Validator extends BaseValidator
     private static $dependencies = [
         'backend' => '%$ValidatorBackend'
     ];
-    
+
     /**
      * Holds the rules defined for this validator.
      *
      * @var array
      */
     protected $rules = [];
-    
+
     /**
      * If true, validation is performed client-side using JavaScript.
      *
      * @var boolean
      */
     protected $clientSide = true;
-    
+
     /**
      * If true, validation is performed server-side using PHP.
      *
      * @var boolean
      */
     protected $serverSide = true;
-    
+
+
+    /**
+     * Backend for validator
+     *
+     * @var Backend
+     */
+    public $backend;
+
     /**
      * Defines the value of the clientSide attribute.
      *
@@ -76,10 +85,10 @@ class Validator extends BaseValidator
     public function setClientSide($clientSide)
     {
         $this->clientSide = (boolean) $clientSide;
-        
+
         return $this;
     }
-    
+
     /**
      * Answers the value of the clientSide attribute.
      *
@@ -89,7 +98,7 @@ class Validator extends BaseValidator
     {
         return $this->clientSide;
     }
-    
+
     /**
      * Defines the value of the serverSide attribute.
      *
@@ -100,10 +109,10 @@ class Validator extends BaseValidator
     public function setServerSide($serverSide)
     {
         $this->serverSide = (boolean) $serverSide;
-        
+
         return $this;
     }
-    
+
     /**
      * Answers the value of the serverSide attribute.
      *
@@ -113,7 +122,7 @@ class Validator extends BaseValidator
     {
         return $this->serverSide;
     }
-    
+
     /**
      * Answers the validator backend in use for this validator.
      *
@@ -123,7 +132,7 @@ class Validator extends BaseValidator
     {
         return $this->backend;
     }
-    
+
     /**
      * Associates the form and data field instances with the validator and rules.
      *
@@ -134,56 +143,56 @@ class Validator extends BaseValidator
     public function setForm($form)
     {
         // Associate Form Instance (via parent):
-        
+
         parent::setForm($form);
-        
+
         // Associate Rules with Fields:
-        
+
         foreach ($this->rules as $fieldName => $rules) {
-            
+
             if ($field = $this->getDataField($fieldName)) {
-                
+
                 foreach ($rules as $rule) {
                     $rule->setField($field);
                 }
-                
+
             }
-            
+
         }
-        
+
         // Associate Backend with Self:
-        
+
         $this->backend->setFrontend($this);
-        
+
         // Initialise Backend:
-        
+
         $this->backend->doInit();
-        
+
         // Define Form Classes:
-        
+
         if ($classes = $this->getClassesForForm($form)) {
-            
+
             foreach ($classes as $class) {
                 $form->addExtraClass($class);
             }
-            
+
         }
-        
+
         // Define Form Attributes:
-        
+
         if ($attributes = $this->getAttributesForForm($form)) {
-            
+
             foreach ($attributes as $key => $value) {
                 $form->setAttribute($key, $value);
             }
-            
+
         }
-        
+
         // Answer Self:
-        
+
         return $this;
     }
-    
+
     /**
      * Answers the list of fields from the associated form.
      *
@@ -193,7 +202,7 @@ class Validator extends BaseValidator
     {
         return $this->form->Fields();
     }
-    
+
     /**
      * Answers a data field with the specified name.
      *
@@ -205,7 +214,7 @@ class Validator extends BaseValidator
     {
         return $this->getFormFields()->dataFieldByName($name);
     }
-    
+
     /**
      * Sets the given rule for the form field with the given name.
      *
@@ -217,12 +226,12 @@ class Validator extends BaseValidator
     public function setRule($fieldName, Rule $rule)
     {
         $this->rules[$fieldName][get_class($rule)] = $rule;
-        
+
         $rule->setValidator($this);
-        
+
         return $this;
     }
-    
+
     /**
      * Sets the rules for the form field with the given name from the given array, or the entire list of rules.
      *
@@ -234,30 +243,30 @@ class Validator extends BaseValidator
     public function setRules($fieldNameOrArray, $rules = [])
     {
         // Determine Parameter Mode:
-        
+
         if (is_array($fieldNameOrArray)) {
-            
+
             // Define All Rules:
-            
+
             foreach ($fieldNameOrArray as $fieldName => $rules) {
                 $this->setRules($fieldName, $rules);
             }
-            
+
         } else {
-            
+
             // Define Rules for Specified Field:
-            
+
             foreach ($rules as $rule) {
                 $this->setRule($fieldNameOrArray, $rule);
             }
-            
+
         }
-        
+
         // Answer Self:
-        
+
         return $this;
     }
-    
+
     /**
      * Answers an array containing the rules for the given form field object.
      *
@@ -269,7 +278,7 @@ class Validator extends BaseValidator
     {
         return $this->getRulesForFieldName($field->getName());
     }
-    
+
     /**
      * Answers an array containing the rules for the field with the given name.
      *
@@ -282,10 +291,10 @@ class Validator extends BaseValidator
         if (isset($this->rules[$fieldName])) {
             return $this->rules[$fieldName];
         }
-        
+
         return [];
     }
-    
+
     /**
      * Answers the validator classes for the given form.
      *
@@ -297,7 +306,7 @@ class Validator extends BaseValidator
     {
         return $this->backend->getClassesForForm($form);
     }
-    
+
     /**
      * Answers the validator attributes for the given form.
      *
@@ -309,7 +318,7 @@ class Validator extends BaseValidator
     {
         return $this->backend->getAttributesForForm($form);
     }
-    
+
     /**
      * Answers the validator attributes for the given form field.
      *
@@ -321,7 +330,7 @@ class Validator extends BaseValidator
     {
         return $this->backend->getAttributesForField($field);
     }
-    
+
     /**
      * Adds a required rule for the form field with the specified name.
      *
@@ -334,7 +343,7 @@ class Validator extends BaseValidator
     {
         return $this->setRule($fieldName, RequiredRule::create($message));
     }
-    
+
     /**
      * Adds required rules for each of the field names present in the given array (associative messages optional).
      *
@@ -345,22 +354,22 @@ class Validator extends BaseValidator
     public function addRequiredFields($fields)
     {
         if (ArrayLib::is_associative($fields)) {
-            
+
             foreach ($fields as $name => $message) {
                 $this->addRequiredField($name, $message);
             }
-            
+
         } else {
-            
+
             foreach ($fields as $name) {
                 $this->addRequiredField($name);
             }
-            
+
         }
-        
+
         return $this;
     }
-    
+
     /**
      * Answers true if the field with the given name is required.
      *
@@ -371,20 +380,20 @@ class Validator extends BaseValidator
     public function fieldIsRequired($fieldName)
     {
         if ($rules = $this->getRulesForFieldName($fieldName)) {
-            
+
             foreach ($rules as $rule) {
-                
+
                 if ($rule instanceof RequiredRule) {
                     return true;
                 }
-                
+
             }
-            
+
         }
-        
+
         return parent::fieldIsRequired($fieldName);
     }
-    
+
     /**
      * Uses the validator backend to configure the given rule.
      *
@@ -396,7 +405,7 @@ class Validator extends BaseValidator
     {
         return $this->backend->configureRule($rule);
     }
-    
+
     /**
      * Performs server-side validation of the submitted form data.
      *
@@ -407,44 +416,44 @@ class Validator extends BaseValidator
     public function php($data)
     {
         // Is Server-side Validation Enabled?
-        
+
         if (!$this->getServerSide()) {
             return true;
         }
-        
+
         // Initialise:
-        
+
         $valid = true;
-        
+
         // Validate Fields:
-        
+
         foreach ($this->getFormFields() as $field) {
             $valid = ($field->validate($this) && $valid);
         }
-        
+
         // Validate Rules:
-        
+
         foreach ($this->rules as $fieldName => $rules) {
-            
+
             if ($field = $this->getDataField($fieldName)) {
-                
+
                 foreach ($rules as $rule) {
-                    
+
                     // Test Field Data:
-                    
+
                     if (!$rule->test($data[$fieldName])) {
                         $this->validationError($fieldName, $rule->getMessage(), 'validation');
                         $valid = false;
                     }
-                    
+
                 }
-                
+
             }
-            
+
         }
-        
+
         // Answer Result:
-        
+
         return $valid;
     }
 }
